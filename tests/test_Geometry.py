@@ -45,3 +45,58 @@ class TestKeepType:
         assert "Point" in types
         assert "LineString" in types
         assert "Polygon" in types
+
+
+class TestRemoveType:
+    """Test the ``removeType`` method."""
+
+    def test_remove_type_point(self, geom_instance):
+        geom = geom_instance.geetools.removeType("Point")
+        geojson = geom.getInfo()
+        assert geojson["type"] == "GeometryCollection"
+        types = [g["type"] for g in geojson["geometries"]]
+        assert "Point" not in types
+        assert "LineString" in types
+        assert "Polygon" in types
+
+    def test_remove_type_linestring(self, geom_instance):
+        geom = geom_instance.geetools.removeType("LineString")
+        geojson = geom.getInfo()
+        assert geojson["type"] == "GeometryCollection"
+        types = [g["type"] for g in geojson["geometries"]]
+        assert "LineString" not in types
+        assert "Point" in types
+        assert "Polygon" in types
+
+    def test_remove_type_polygon(self, geom_instance):
+        geom = geom_instance.geetools.removeType("Polygon")
+        geojson = geom.getInfo()
+        assert geojson["type"] == "GeometryCollection"
+        types = [g["type"] for g in geojson["geometries"]]
+        assert "Polygon" not in types
+        assert "Point" in types
+        assert "LineString" in types
+
+    def test_remove_type_list_single(self, geom_instance):
+        geom = geom_instance.geetools.removeType(["Point"])
+        geojson = geom.getInfo()
+        assert geojson["type"] == "GeometryCollection"
+        types = [g["type"] for g in geojson["geometries"]]
+        assert "Point" not in types
+        assert "LineString" in types
+        assert "Polygon" in types
+
+    def test_remove_type_list_multiple(self, geom_instance):
+        geom = geom_instance.geetools.removeType(["LineString", "Point"])
+        geojson = geom.getInfo()
+        assert geojson["type"] == "GeometryCollection"
+        types = [g["type"] for g in geojson["geometries"]]
+        assert "Point" not in types
+        assert "LineString" not in types
+        assert "Polygon" in types
+
+    def test_remove_type_list_all(self, geom_instance):
+        geom = geom_instance.geetools.removeType(["LineString", "Point", "Polygon"])
+        geojson = geom.getInfo()
+        assert geojson["type"] == "GeometryCollection"
+        assert geojson["geometries"] == []

@@ -74,3 +74,61 @@ class GeometryAccessor:
             return getattr(ee.Geometry, "Multi" + types[0])(geometries, self._obj.projection())
 
         return ee.Algorithms.GeometryConstructors.MultiGeometry(geometries, self._obj.projection())
+
+    def removeType(self, type: str | list[str]) -> ee.Geometry:
+        """Remove the geometries of the given type(s) from a GeometryCollection.
+
+        Args:
+            type: The type of geometries to remove. Can be a single type or a list of types. Valid types are: Point, LineString, LinearRing, Polygon.
+
+        Returns:
+            A GeometryCollection without the geometries of the given type(s).
+
+        Examples:
+            .. jupyter-execute::
+
+                import ee, geetools
+                from geetools.utils import initialize_documentation
+
+                initialize_documentation()
+
+                # generate multiple geometries of different types
+                point0 = ee.Geometry.Point([0,0], proj="EPSG:4326")
+                point1 = ee.Geometry.Point([0,1], proj="EPSG:4326")
+                poly0 = point0.buffer(1, proj="EPSG:4326")
+                poly1 = point1.buffer(1, proj="EPSG:4326").bounds(proj="EPSG:4326")
+                line = ee.Geometry.LineString([point1, point0], proj="EPSG:4326")
+                multiPoly = ee.Geometry.MultiPolygon([poly0, poly1], proj="EPSG:4326")
+
+                # create a geometry collection from them
+                geometryCollection = ee.Algorithms.GeometryConstructors.MultiGeometry(
+                    [multiPoly, poly0, poly1, point0, line],
+                    crs="EPSG:4326",
+                    geodesic=True,
+                    maxError=1
+                )
+
+                # remove the Point geometries from the collection
+                geom = geometryCollection.geetools.removeType('Point')
+                geom.getInfo()
+
+            .. jupyter-execute::
+
+                # remove LineString and Point geometries from the collection
+                geom = geometryCollection.geetools.removeType(['LineString', 'Point'])
+                geom.getInfo()
+        """
+        # will raise an error if self is not a GeometryCollection
+        error_msg = "This method can only be used with GeometryCollections"
+        assert self._obj.type().getInfo() == "GeometryCollection", error_msg
+
+        types = type if isinstance(type, list) else [type]
+        type_list = ee.List(types)
+
+        def filterType(geom):
+            geom = ee.Geometry(geom)
+            return ee.Algorithms.If(type_list.containsAll(ee.List([geom.type()])), None, geom)
+
+        geometries = self._obj.geometries().map(filterType, True)
+
+        return ee.Algorithms.GeometryConstructors.MultiGeometry(geometries, self._obj.projection())
